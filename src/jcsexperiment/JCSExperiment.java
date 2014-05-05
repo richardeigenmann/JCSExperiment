@@ -6,6 +6,8 @@ import java.net.MalformedURLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.Timer;
+import org.apache.commons.jcs.JCS;
+import org.apache.commons.jcs.access.CacheAccess;
 import org.apache.commons.jcs.access.exception.CacheException;
 
 /**
@@ -14,8 +16,19 @@ import org.apache.commons.jcs.access.exception.CacheException;
  */
 public class JCSExperiment extends javax.swing.JFrame {
 
+    /**
+     * update frequency for the cache stats
+     */
     private static final int REFRESH_INTERVAL = 400; //ms
+
+    /**
+     * period in miliseconds between gets on the randomWalker timer
+     */
     private static final int CACHE_RETRIEVAL_INTERVAL = 400; //ms
+
+    private static final String cacheRegionName = "testCache";
+
+    private CacheAccess<String, CacheableObject> cacheAccess;
 
     /**
      * Creates new form CachePerformanceTester
@@ -23,16 +36,33 @@ public class JCSExperiment extends javax.swing.JFrame {
     public JCSExperiment() {
         initComponents();
 
-        timer = new Timer( REFRESH_INTERVAL, new ActionListener() {
+        try {
+            cacheAccess = JCS.getInstance( cacheRegionName );
+        } catch ( CacheException ex ) {
+            LOGGER.severe( ex.getLocalizedMessage() );
+        }
+
+        Timer updateTimer = new Timer( REFRESH_INTERVAL, new ActionListener() {
 
             @Override
             public void actionPerformed( ActionEvent e ) {
                 updateInfo();
             }
         } );
-        timer.start();
+        updateTimer.start();
+    }
 
-        Timer randomWalker = new Timer( CACHE_RETRIEVAL_INTERVAL, new ActionListener() {
+    /**
+     * Get timer which calls a random cache get
+     */
+    private Timer randomWalker;
+
+    /**
+     * starts the cache get timer
+     */
+    private void startGet() {
+
+        randomWalker = new Timer( CACHE_RETRIEVAL_INTERVAL, new ActionListener() {
 
             @Override
             public void actionPerformed( ActionEvent e ) {
@@ -46,7 +76,12 @@ public class JCSExperiment extends javax.swing.JFrame {
         randomWalker.start();
     }
 
-    private final Timer timer;
+    /**
+     * ends the cache get timer
+     */
+    private void stopGet() {
+        randomWalker.stop();
+    }
 
     private void loadObjects() {
         int number = numberField.getValue();
@@ -55,7 +90,7 @@ public class JCSExperiment extends javax.swing.JFrame {
 
             CacheableObject cacheableObject = new CacheableObject( new byte[(int) sizeField.getValue()] );
             try {
-                JcsCache.getInstance().getCacheAccessForTesting().put( key, cacheableObject );
+                cacheAccess.put( key, cacheableObject );
             } catch ( CacheException ex ) {
                 LOGGER.info( ex.getLocalizedMessage() );
             }
@@ -71,7 +106,7 @@ public class JCSExperiment extends javax.swing.JFrame {
         if ( objectsCachedCount > 0 ) {
             int randomKey = (int) ( Math.random() * objectsCachedCount );
             String key = String.format( "Key:%d", randomKey );
-            CacheableObject cacheableObject = (CacheableObject) JcsCache.getInstance().getCacheAccessForTesting().get( key );
+            CacheableObject cacheableObject = (CacheableObject) cacheAccess.get( key );
             progressTextArea.append( "Retrieved " );
             progressTextArea.append( key.toString() );
             if ( cacheableObject == null ) {
@@ -96,14 +131,14 @@ public class JCSExperiment extends javax.swing.JFrame {
         totalMemory.setText( String.format( "%dMB", totalMemoryMB ) );
         maxMemory.setText( String.format( "%dMB", maxMemoryMB ) );
 
-        cacheInfo.setText( JcsCache.getInstance().getHighresCacheStats() );
+        cacheInfo.setText( cacheAccess.getStats() );
         objectsCached.setText( Integer.toString( objectsCachedCount ) );
     }
 
     /**
      * Defines a logger for this class
      */
-    private static final Logger LOGGER = Logger.getLogger( JcsCache.class.getName() );
+    private static final Logger LOGGER = Logger.getLogger( JCSExperiment.class.getName() );
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -134,6 +169,8 @@ public class JCSExperiment extends javax.swing.JFrame {
         jLabel4 = new javax.swing.JLabel();
         sizeField = new jcsexperiment.WholeNumberField(10,5);
         numberField = new jcsexperiment.WholeNumberField(25,5);
+        startGetButton = new javax.swing.JButton();
+        stopGetButton = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -179,6 +216,21 @@ public class JCSExperiment extends javax.swing.JFrame {
 
         jLabel4.setText("Number to load:");
 
+        startGetButton.setText("Start get");
+        startGetButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                startGetButtonActionPerformed(evt);
+            }
+        });
+
+        stopGetButton.setText("Stop get");
+        stopGetButton.setEnabled(false);
+        stopGetButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                stopGetButtonActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -204,6 +256,10 @@ public class JCSExperiment extends javax.swing.JFrame {
                                     .addComponent(freeMemory)
                                     .addComponent(objectsCached))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(startGetButton)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(stopGetButton)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(jButton1))
                             .addGroup(layout.createSequentialGroup()
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -216,7 +272,7 @@ public class JCSExperiment extends javax.swing.JFrame {
                     .addComponent(jLabel9))
                 .addContainerGap())
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 279, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 292, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jLabel4)
@@ -249,7 +305,10 @@ public class JCSExperiment extends javax.swing.JFrame {
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(objectsCached)
                             .addComponent(jLabel9)))
-                    .addComponent(jButton1))
+                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(jButton1)
+                        .addComponent(startGetButton)
+                        .addComponent(stopGetButton)))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel6)
@@ -266,6 +325,18 @@ public class JCSExperiment extends javax.swing.JFrame {
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         loadObjects();
     }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void startGetButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_startGetButtonActionPerformed
+        startGet();
+        startGetButton.setEnabled( false );
+        stopGetButton.setEnabled( true );
+    }//GEN-LAST:event_startGetButtonActionPerformed
+
+    private void stopGetButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_stopGetButtonActionPerformed
+        stopGet();
+        startGetButton.setEnabled( true );
+        stopGetButton.setEnabled( false );
+    }//GEN-LAST:event_stopGetButtonActionPerformed
 
     /**
      * @param args the command line arguments
@@ -322,6 +393,8 @@ public class JCSExperiment extends javax.swing.JFrame {
     private javax.swing.JLabel objectsCached;
     private javax.swing.JTextArea progressTextArea;
     private jcsexperiment.WholeNumberField sizeField;
+    private javax.swing.JButton startGetButton;
+    private javax.swing.JButton stopGetButton;
     private javax.swing.JLabel totalMemory;
     private javax.swing.JLabel totalMemoryLabel;
     // End of variables declaration//GEN-END:variables

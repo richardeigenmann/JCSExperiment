@@ -1,8 +1,8 @@
-# cache.ccf
-# Memory only cache without disk
+# cache_disk_auxilary.ccf
+# alternative cache.ccf file with a Disk Auxiliary
 
 # DEFAULT CACHE REGION
-jcs.default=
+jcs.default=DC
 jcs.default.cacheattributes=org.apache.commons.jcs.engine.CompositeCacheAttributes
 jcs.default.cacheattributes.MaxObjects=1000
 jcs.default.cacheattributes.MemoryCacheName=org.apache.commons.jcs.engine.memory.lru.LRUMemoryCache
@@ -19,7 +19,7 @@ jcs.default.elementattributes.IsLateral=true
 
 
 # PREDEFINED CACHE REGIONS for Highres no disk cache (Images came from disk)
-jcs.region.testCache=
+jcs.region.testCache=DC
 jcs.region.testCache.cacheattributes=org.apache.commons.jcs.engine.CompositeCacheAttributes
 jcs.region.testCache.cacheattributes.MaxObjects=1000
 jcs.region.testCache.cacheattributes.MemoryCacheName=org.apache.commons.jcs.engine.memory.lru.LRUMemoryCache
@@ -32,3 +32,15 @@ jcs.region.testCache.cacheattributes.ShrinkerIntervalSeconds=60
 jcs.region.testCache.cacheattributes.MaxSpoolPerRun=500
 jcs.region.testCache.elementattributes=org.apache.commons.jcs.engine.ElementAttributes
 jcs.region.testCache.elementattributes.IsEternal=false
+
+
+# AVAILABLE AUXILIARY CACHES
+jcs.auxiliary.DC=org.apache.commons.jcs.auxiliary.disk.indexed.IndexedDiskCacheFactory
+jcs.auxiliary.DC.attributes=org.apache.commons.jcs.auxiliary.disk.indexed.IndexedDiskCacheAttributes
+jcs.auxiliary.DC.attributes.DiskPath=JCSExperimentCache-delete-me
+jcs.auxiliary.DC.attributes.MaxPurgatorySize=5000  
+jcs.auxiliary.DC.attributes.MaxKeySize=1000000
+jcs.auxiliary.DC.attributes.MaxRecycleBinSize=5000
+jcs.auxiliary.DC.attributes.OptimizeAtRemoveCount=300000
+jcs.auxiliary.DC.attributes.ShutdownSpoolTimeLimit=60
+jcs.auxiliary.DC.attributes.OptimizeOnShutdown=true
