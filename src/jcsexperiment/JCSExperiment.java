@@ -96,7 +96,7 @@ public class JCSExperiment extends javax.swing.JFrame {
             }
         }
 
-        progressTextArea.append( String.format( "Added %d Pictures.\n", number ) );
+        progressTextArea.append( String.format( "Added %d Objects.\n", number ) );
         objectsCachedCount += number;
         updateInfo();
 
@@ -110,11 +110,13 @@ public class JCSExperiment extends javax.swing.JFrame {
             progressTextArea.append( "Retrieved " );
             progressTextArea.append( key );
             if ( cacheableObject == null ) {
+                // cache miss
                 progressTextArea.append( " as null\n" );
 
                 if ( cacheMissPutCheckbox.isSelected() ) {
                     //does it make a difference if we now try to put a missed object?
                     cacheableObject = new CacheableObject( new byte[(int) sizeField.getValue()] );
+                    progressTextArea.append( "   --> doing put after cache miss\n" );
                     try {
                         cacheAccess.put( key, cacheableObject );
                     } catch ( CacheException ex ) {
@@ -220,7 +222,7 @@ public class JCSExperiment extends javax.swing.JFrame {
 
         jLabel8.setText("Free Memory");
 
-        jLabel9.setText("Pictures Cached:");
+        jLabel9.setText("Objects Cached:");
 
         objectsCached.setText("jLabel9");
 
