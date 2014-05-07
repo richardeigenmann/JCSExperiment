@@ -86,11 +86,12 @@ public class JCSExperiment extends javax.swing.JFrame {
     private void loadObjects() {
         int number = numberField.getValue();
         for ( int i = 0; i < number; i++ ) {
-            String key = String.format( "Key:%d", i );
+            String key = String.format( "Key:%d", i + objectsCachedCount );
 
             CacheableObject cacheableObject = new CacheableObject( new byte[(int) sizeField.getValue()] );
             try {
                 cacheAccess.put( key, cacheableObject );
+                progressTextArea.append( String.format ("Put object: %s\n", key ) );
             } catch ( CacheException ex ) {
                 LOGGER.info( ex.getLocalizedMessage() );
             }
