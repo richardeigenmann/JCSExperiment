@@ -47,11 +47,11 @@ public class WholeNumberField extends JTextField {
      */
     private final NumberFormat integerFormatter;
 
+    /**
+     * Empty argument constructor for Netbeans to accept this as a form widget
+     */
     public WholeNumberField() {
-        super( 8 );
-        integerFormatter = NumberFormat.getNumberInstance( Locale.getDefault() );
-        integerFormatter.setParseIntegerOnly( true );
-        setValue( 0 );
+        this( 0, 8 );
     }
 
     /**
